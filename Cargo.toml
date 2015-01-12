@@ -8,4 +8,3 @@ git = "https://github.com/codius/rust-seccomp"
 
 [lib]
 name = "codius-sandbox-core"
-crate_type = ["staticlib"]

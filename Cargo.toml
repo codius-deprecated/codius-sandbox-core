@@ -6,5 +6,8 @@ authors = ["Torrie Fischer <torrie@ripple.com>"]
 [dependencies.rust-seccomp]
 git = "https://github.com/codius/rust-seccomp"
 
+[dependencies.ptrace]
+git = "https://github.com/codius/rust-ptrace"
+
 [lib]
 name = "codius-sandbox-core"

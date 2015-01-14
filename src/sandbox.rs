@@ -22,9 +22,13 @@ impl<'a> Sandbox<'a> {
     }
 
     fn exec_child(&mut self) {
+        extern "C" { fn clearenv(); fn setpgid(a: libc::c_int, b: libc::c_int); };
+        unsafe {
+            clearenv(); 
+            setpgid(0, 0);
+        }
         ptrace::traceme();
         ipc::signals::Signal::Stop.raise().ok().expect("Could not stop child");
-
         self.setup_seccomp();
         self.executor.exec();
     }
@@ -130,7 +134,7 @@ impl<'a> Sandbox<'a> {
     fn attach_to_child(&self) {
         ptrace::attach(self.pid).ok().expect("Could not attach.");
         let s = waitpid::wait(self.pid, waitpid::None);
-        println!("attach: {:?}", s);
+        println!("post attach: {:?}", s);
         s.ok().expect("Could not wait for child to enter ptrace");
         ptrace::setoptions(self.pid,
                            ptrace::TraceExit | ptrace::ExitKill |

@@ -1,1 +1,5 @@
 language: rust
+before_install:
+  - sudo apt-add-repository -y ppa:ubuntu-lxc/daily
+  - sudo apt-get update
+  - sudo apt-get install libseccomp-dev libseccomp2

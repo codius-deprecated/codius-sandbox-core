@@ -5,7 +5,7 @@ extern crate "posix-ipc" as ipc;
 #[test]
 fn intercept_exec() {
     unsafe {ipc::signals::Signal::Chld.handle(Box::new(|&:Signal| {println!("Child!");}))};
-    let exec = sandbox::executors::Function::new(Box::new(move |&:| {}));
+    let exec = sandbox::executors::Function::new(Box::new(move |&:| -> i32 {0}));
     let mut sbox = sandbox::Sandbox::new(Box::new(exec));
     sbox.spawn();
     loop {

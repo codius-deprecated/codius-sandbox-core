@@ -41,11 +41,11 @@ impl<'a> Executor for Execv<'a> {
 }
 
 pub struct Function<'a> {
-    closure: Box<Fn() + 'a>
+    closure: Box<Fn() -> i32 + 'a>
 }
 
 impl<'a> Function<'a> {
-    pub fn new(closure: Box<Fn() + 'a>) -> Self {
+    pub fn new(closure: Box<Fn() -> i32 + 'a>) -> Self {
         Function {
             closure: closure
         }
@@ -55,7 +55,7 @@ impl<'a> Function<'a> {
 impl<'a> Executor for Function<'a> {
     fn exec(&mut self) -> ! {
         let ref c = self.closure;
-        c();
-        panic! ("Closure should not return!");
+        let st = c();
+        unsafe { libc::exit(st) }
     }
 }

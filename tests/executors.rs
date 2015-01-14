@@ -14,7 +14,7 @@ fn exec_bin_true() {
 
 #[test]
 fn exec_closure() {
-    let exec = sandbox::executors::Function::new(Box::new(move |&:| {}));
+    let exec = sandbox::executors::Function::new(Box::new(move |&:| -> i32 {0}));
     let mut sbox = sandbox::Sandbox::new(Box::new(exec));
     sbox.spawn();
     assert!(sbox.get_pid() != -1);
@@ -22,7 +22,7 @@ fn exec_closure() {
 
 #[test]
 fn release() {
-    let exec = sandbox::executors::Function::new(Box::new(move |&:| {}));
+    let exec = sandbox::executors::Function::new(Box::new(move |&:| -> i32 {0}));
     let mut sbox = sandbox::Sandbox::new(Box::new(exec));
     sbox.spawn();
     assert!(sbox.get_pid() != -1);

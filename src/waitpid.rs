@@ -1,4 +1,5 @@
 extern crate libc;
+extern crate ptrace;
 extern crate "posix-ipc" as ipc;
 
 use self::ipc::signals;
@@ -11,13 +12,19 @@ pub enum WaitState {
     Stopped(signals::Signal),
     Continued,
     Exited(isize),
-    Signaled(signals::Signal)
+    Signaled(signals::Signal),
+    PTrace(ptrace::Event)
 }
 
 impl WaitState {
     pub fn from_i32(v: i32) -> Self {
         if v & 0xff == 0x7f {
-            WaitState::Stopped(FromPrimitive::from_i32((v & 0xff00) >> 8).expect("Unknown signal"))
+            let sig = FromPrimitive::from_i32((v & 0xff00) >> 8).expect("Unknown signal");
+            let evt = ptrace::Event::from_wait_status(v);
+            match evt {
+                Option::Some(s) => WaitState::PTrace(s),
+                Option::None => WaitState::Stopped(sig)
+            }
         } else if v == 0xffff {
             WaitState::Continued
         } else if (v & 0xff00) >> 8 == 0 {

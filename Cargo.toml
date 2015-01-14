@@ -11,3 +11,6 @@ git = "git://github.com/codius/rust-ptrace"
 
 [lib]
 name = "codius-sandbox-core"
+
+[[bin]]
+name = "codius-smoke-test"

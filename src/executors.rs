@@ -1,3 +1,4 @@
+#[allow(unstable)]
 extern crate libc;
 use std::ffi::CString;
 use std::ptr;
@@ -19,6 +20,7 @@ impl<'a> Execv<'a> {
 }
 
 impl<'a> Executor for Execv<'a> {
+    #[allow(unstable)]
     fn exec(&mut self) -> ! {
         let mut ptrs: Vec<*const libc::c_char> = Vec::with_capacity(self.argv.len());
         for arg in self.argv.iter() {

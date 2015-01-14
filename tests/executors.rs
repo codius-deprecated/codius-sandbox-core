@@ -1,6 +1,7 @@
 #![allow(unstable)]
 extern crate "codius-sandbox-core" as sandbox;
 extern crate "posix-ipc" as ipc;
+use ipc::signals;
 
 #[test]
 fn exec_bin_true() {

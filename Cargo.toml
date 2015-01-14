@@ -3,11 +3,11 @@ name = "codius-sandbox-core"
 version = "0.0.1"
 authors = ["Torrie Fischer <torrie@ripple.com>"]
 
-[dependencies.rust-seccomp]
-git = "https://github.com/codius/rust-seccomp"
+[dependencies.seccomp]
+git = "git://github.com/codius/rust-seccomp"
 
 [dependencies.ptrace]
-git = "https://github.com/codius/rust-ptrace"
+git = "git://github.com/codius/rust-ptrace"
 
 [lib]
 name = "codius-sandbox-core"

@@ -8,12 +8,15 @@ fn main() {
     sbox.spawn();
     loop {
         let e = sbox.tick();
-        println!("Event: {:?}", e);
         match e {
             sandbox::events::Event::Exit(st) => {
                 println!("Child exited with {:?}", st);
                 break;
-            }
+            },
+            sandbox::events::Event::Signal(s) => {
+                println!("Got signal {:?}", s);
+            },
+            sandbox::events::Event::None => {},
             _ => {
                 panic!("Unhandled sandbox event {:?}", e);
             }

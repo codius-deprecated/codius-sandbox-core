@@ -141,31 +141,34 @@ impl<'a> Sandbox<'a> {
                            ptrace::TraceSeccomp | ptrace::TraceExec |
                            ptrace::TraceClone).ok().expect("Could not set options");
         ptrace::cont(self.pid, ipc::signals::Signal::None).ok().expect("Could not continue");
-        let s = waitpid::wait(self.pid, waitpid::None);
-        println!("cont: {:?}", s);
+    }
+
+    fn handle_exec(&self, res: waitpid::WaitResult) -> events::Event {
+        panic!("how do exec?!");
     }
 
     pub fn tick(&mut self) -> events::Event {
-        loop {
-            assert!(self.pid > 0);
-            let s = waitpid::wait(-self.pid, waitpid::NoWait | waitpid::All);
-            let res = s.ok().expect("Could not wait on child");
-            match res.state {
-                waitpid::WaitState::Stopped(ipc::signals::Signal::Trap) => {
-                    println!("Trapped");
+        assert!(self.pid > 0);
+        let s = waitpid::wait(-1, waitpid::All);
+        let res = s.ok().expect("Could not wait on child");
+        if res.pid == 0 && res.status == 0 {
+            return events::Event::None;
+        }
+        match res.state {
+            waitpid::WaitState::PTrace(e) =>
+                match e {
+                    ptrace::Event::Exec => return self.handle_exec(res),
+                    _ => panic!("Unhandled ptrace event {:?}", res)
                 },
-                waitpid::WaitState::Stopped(s) => {
-                    println!("Got some signal {:?}", s);
-                    ptrace::cont(res.pid, s);
-                    return events::Event::Signal(s);
-                },
-                waitpid::WaitState::Exited(st) => {
-                    println!("Exited!");
-                    self.release(ipc::signals::Signal::None);
-                    return events::Event::Exit(st);
-                }
-                _ => {println!("Unknown state {:?}", res);}
+            waitpid::WaitState::Stopped(s) => {
+                ptrace::cont(res.pid, s);
+                return events::Event::Signal(s);
+            },
+            waitpid::WaitState::Exited(st) => {
+                self.release(ipc::signals::Signal::None);
+                return events::Event::Exit(st);
             }
+            _ => panic!("Unknown state {:?}", res)
         }
     }
 

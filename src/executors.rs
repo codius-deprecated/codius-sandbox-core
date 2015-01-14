@@ -2,6 +2,7 @@
 extern crate libc;
 use std::ffi::CString;
 use std::ptr;
+use std::os;
 
 pub trait Executor {
     fn exec(&mut self) -> !;
@@ -22,17 +23,20 @@ impl<'a> Execv<'a> {
 impl<'a> Executor for Execv<'a> {
     #[allow(unstable)]
     fn exec(&mut self) -> ! {
+        let command = CString::from_slice(self.argv[0].as_bytes());
         let mut ptrs: Vec<*const libc::c_char> = Vec::with_capacity(self.argv.len());
         for arg in self.argv.iter() {
             ptrs.push(CString::from_slice(arg.as_bytes()).as_ptr());
         }
         ptrs.push(ptr::null());
 
+        let s;
+
         unsafe {
-            libc::execvp(ptrs[0], ptrs.as_mut_ptr());
+            s = libc::execvp(command.as_ptr(), ptrs.as_mut_ptr());
         }
 
-        panic!("Could not exec {:?}", self.argv);
+        panic!("Could not exec {:?}: {:?} {:?}", self.argv, os::last_os_error(), os::errno());
     }
 }
 

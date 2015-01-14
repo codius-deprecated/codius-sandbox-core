@@ -143,16 +143,25 @@ impl<'a> Sandbox<'a> {
 
     pub fn tick(&mut self) -> events::Event {
         loop {
+            assert!(self.pid > 0);
             let s = waitpid::wait(-self.pid, waitpid::NoWait | waitpid::All);
-            println!("Got {:?}", s);
             let res = s.ok().expect("Could not wait on child");
             match res.state {
                 waitpid::WaitState::Stopped(ipc::signals::Signal::Trap) => {
                     println!("Trapped");
                 },
+                waitpid::WaitState::Stopped(s) => {
+                    println!("Got some signal {:?}", s);
+                    ptrace::cont(res.pid, s);
+                    return events::Event::Signal(s);
+                },
+                waitpid::WaitState::Exited(st) => {
+                    println!("Exited!");
+                    self.release(ipc::signals::Signal::None);
+                    return events::Event::Exit(st);
+                }
                 _ => {println!("Unknown state {:?}", res);}
             }
-            ptrace::cont(res.pid, ipc::signals::Signal::None);
         }
     }
 

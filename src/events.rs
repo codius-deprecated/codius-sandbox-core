@@ -1,4 +1,8 @@
-#[derive(FromPrimitive, Show)]
+extern crate "posix-ipc" as ipc;
+
+#[derive(Show)]
 pub enum Event {
-    Unknown
+    Unknown,
+    Signal(ipc::signals::Signal),
+    Exit(isize)
 }

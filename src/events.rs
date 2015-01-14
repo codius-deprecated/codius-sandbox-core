@@ -1,8 +1,11 @@
 extern crate "posix-ipc" as ipc;
+extern crate ptrace;
 
 #[derive(Show)]
 pub enum Event {
-    Unknown,
+    None,
+    Trap,
     Signal(ipc::signals::Signal),
-    Exit(isize)
+    Exit(isize),
+    PTrace(ptrace::Event)
 }

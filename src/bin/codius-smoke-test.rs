@@ -2,7 +2,7 @@ extern crate "codius-sandbox-core" as sandbox;
 
 #[main]
 fn main() {
-    let argv = ["/usr/bin/true"];
+    let argv = ["/usr/bin/ls"];
     let exec = sandbox::executors::Execv::new(&argv);
     let mut sbox = sandbox::Sandbox::new(Box::new(exec));
     sbox.spawn();

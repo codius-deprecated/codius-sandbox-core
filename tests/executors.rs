@@ -11,8 +11,8 @@ fn exec_bin_false() {
     sbox.spawn();
     assert!(sbox.get_pid() != -1);
     loop {
-        match sbox.tick() {
-            sandbox::events::Event::Exit(st) => {
+        match sbox.tick().state {
+            sandbox::events::State::Exit(st) => {
                 assert!(st == 1);
                 break;
             },
@@ -29,8 +29,8 @@ fn exec_bin_true() {
     sbox.spawn();
     assert!(sbox.get_pid() != -1);
     loop {
-        match sbox.tick() {
-            sandbox::events::Event::Exit(st) => {
+        match sbox.tick().state {
+            sandbox::events::State::Exit(st) => {
                 assert!(st == 0);
                 break;
             },
@@ -46,8 +46,8 @@ fn exec_closure() {
     sbox.spawn();
     assert!(sbox.get_pid() != -1);
     loop {
-        match sbox.tick() {
-            sandbox::events::Event::Exit(st) => {
+        match sbox.tick().state {
+            sandbox::events::State::Exit(st) => {
                 assert!(st == 0);
                 break;
             },
@@ -63,8 +63,8 @@ fn exec_closure_with_return() {
     sbox.spawn();
     assert!(sbox.get_pid() != -1);
     loop {
-        match sbox.tick() {
-            sandbox::events::Event::Exit(st) => {
+        match sbox.tick().state {
+            sandbox::events::State::Exit(st) => {
                 assert!(st == 42);
                 break;
             },

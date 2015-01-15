@@ -12,8 +12,8 @@ fn intercept_exec() {
     loop {
         let e = sbox.tick();
         println!("Event: {:?}", e);
-        match e {
-            sandbox::events::Event::Exit(st) => {
+        match e.state {
+            sandbox::events::State::Exit(st) => {
                 exit_status = st;
                 break;
             }

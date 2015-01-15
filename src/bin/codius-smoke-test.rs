@@ -1,4 +1,8 @@
 extern crate "codius-sandbox-core" as sandbox;
+extern crate seccomp;
+extern crate ptrace;
+
+use std::num::FromPrimitive;
 
 #[main]
 fn main() {
@@ -7,19 +11,27 @@ fn main() {
     let mut sbox = sandbox::Sandbox::new(Box::new(exec));
     sbox.spawn();
     loop {
-        let e = sbox.tick();
-        match e {
-            sandbox::events::Event::Exit(st) => {
+        let mut e = sbox.tick();
+        match e.state {
+            sandbox::events::State::Exit(st) => {
                 println!("Child exited with {:?}", st);
+                e.cont();
                 break;
             },
-            sandbox::events::Event::EnteredMain => {
-                println!("Child has entered main()")
+            sandbox::events::State::EnteredMain => {
+                println!("Child has entered main()");
+                e.cont();
             },
-            sandbox::events::Event::Signal(s) => {
+            sandbox::events::State::Signal(s) => {
                 println!("Got signal {:?}", s);
+                e.cont();
             },
-            sandbox::events::Event::None => {},
+            sandbox::events::State::Seccomp(call) => {
+                let s: seccomp::Syscall = FromPrimitive::from_u64(call.call).expect("Unknown syscall");
+                println!("Attemped syscall {:?}", s);
+                e.cont();
+            },
+            sandbox::events::State::None => {},
             _ => {
                 panic!("Unhandled sandbox event {:?}", e);
             }

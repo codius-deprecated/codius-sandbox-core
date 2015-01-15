@@ -148,9 +148,10 @@ impl<'a> Sandbox<'a> {
     fn handle_exec(&mut self, res: waitpid::WaitResult) -> events::Event {
         if (!self.entered_main) {
             self.entered_main = true;
-            return events::Event::EnteredMain
+            return events::Event::new(res, events::State::EnteredMain);
         } else {
-            return self.release(ipc::signals::Signal::Kill);
+            self.release(ipc::signals::Signal::Kill);
+            return events::Event::new(res, events::State::Released(ipc::signals::Signal::Kill));
         }
     }
 
@@ -159,21 +160,25 @@ impl<'a> Sandbox<'a> {
         let s = waitpid::wait(-1, waitpid::All);
         let res = s.ok().expect("Could not wait on child");
         if res.pid == 0 && res.status == 0 {
-            return events::Event::None;
+            return events::Event::new(res, events::State::None);
         }
         match res.state {
             waitpid::WaitState::PTrace(e) =>
                 match e {
-                    ptrace::Event::Exec => return self.handle_exec(res),
+                    ptrace::Event::Exec => self.handle_exec(res),
+                    ptrace::Event::Seccomp =>
+                        events::Event::new(res, events::State::Seccomp(ptrace::Syscall::from_pid(res.pid))),
+                    ptrace::Event::Exit =>
+                        events::Event::new(res, events::State::Exit(0)),
                     _ => panic!("Unhandled ptrace event {:?}", res)
                 },
             waitpid::WaitState::Stopped(s) => {
                 ptrace::cont(res.pid, s);
-                return events::Event::Signal(s);
+                return events::Event::new(res, events::State::Signal(s));
             },
             waitpid::WaitState::Exited(st) => {
                 self.release(ipc::signals::Signal::None);
-                return events::Event::Exit(st);
+                return events::Event::new(res, events::State::Exit(st));
             }
             _ => panic!("Unknown state {:?}", res)
         }
@@ -183,10 +188,9 @@ impl<'a> Sandbox<'a> {
         self.pid
     }
 
-    pub fn release(&mut self, signal: ipc::signals::Signal) -> events::Event {
+    pub fn release(&mut self, signal: ipc::signals::Signal) {
         ptrace::release(self.pid, signal);
         self.pid = -1;
-        return events::Event::Released(signal);
     }
 
     pub fn spawn(&mut self) {

@@ -13,6 +13,9 @@ fn main() {
                 println!("Child exited with {:?}", st);
                 break;
             },
+            sandbox::events::Event::EnteredMain => {
+                println!("Child has entered main()")
+            },
             sandbox::events::Event::Signal(s) => {
                 println!("Got signal {:?}", s);
             },

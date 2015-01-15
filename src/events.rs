@@ -7,5 +7,7 @@ pub enum Event {
     Trap,
     Signal(ipc::signals::Signal),
     Exit(isize),
-    PTrace(ptrace::Event)
+    PTrace(ptrace::Event),
+    EnteredMain,
+    Released(ipc::signals::Signal)
 }

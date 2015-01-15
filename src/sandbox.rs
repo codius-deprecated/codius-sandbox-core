@@ -10,14 +10,16 @@ use events;
 
 pub struct Sandbox<'a> {
     pid: libc::pid_t,
-    executor: Box<Executor + 'a>
+    executor: Box<Executor + 'a>,
+    entered_main: bool
 }
 
 impl<'a> Sandbox<'a> {
     pub fn new(exec: Box<Executor + 'a>) -> Sandbox<'a> {
         Sandbox {
             pid: -1,
-            executor: exec
+            executor: exec,
+            entered_main: false
         }
     }
 
@@ -143,8 +145,13 @@ impl<'a> Sandbox<'a> {
         ptrace::cont(self.pid, ipc::signals::Signal::None).ok().expect("Could not continue");
     }
 
-    fn handle_exec(&self, res: waitpid::WaitResult) -> events::Event {
-        panic!("how do exec?!");
+    fn handle_exec(&mut self, res: waitpid::WaitResult) -> events::Event {
+        if (!self.entered_main) {
+            self.entered_main = true;
+            return events::Event::EnteredMain
+        } else {
+            return self.release(ipc::signals::Signal::Kill);
+        }
     }
 
     pub fn tick(&mut self) -> events::Event {
@@ -176,9 +183,10 @@ impl<'a> Sandbox<'a> {
         self.pid
     }
 
-    pub fn release(&mut self, signal: ipc::signals::Signal) {
+    pub fn release(&mut self, signal: ipc::signals::Signal) -> events::Event {
         ptrace::release(self.pid, signal);
         self.pid = -1;
+        return events::Event::Released(signal);
     }
 
     pub fn spawn(&mut self) {

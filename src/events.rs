@@ -4,7 +4,7 @@ extern crate ptrace;
 
 use waitpid;
 
-#[derive(Show)]
+#[derive(Show, Copy)]
 pub enum State {
     None,
     Trap,
@@ -20,7 +20,28 @@ pub enum State {
 pub struct Event {
     pub state: State,
     pid: libc::pid_t,
-    handled: bool
+}
+
+pub struct Syscall<'a> {
+    pub event: &'a Event,
+    pub call: ptrace::Syscall
+}
+
+impl<'a> Syscall<'a> {
+    pub fn from_event(event: &'a Event) -> Option<Syscall<'a>> {
+        match event.state {
+            State::Seccomp(call) => Option::Some(Syscall{event: event, call: call}),
+            _ => Option::None
+        }
+    }
+
+    pub fn set_return_value(&mut self, value: ptrace::Word) {
+        self.call.returnVal = value
+    }
+
+    pub fn skip(&mut self) {
+        self.call.call = -1
+    }
 }
 
 impl Event {
@@ -28,25 +49,36 @@ impl Event {
         Event {
             pid: res.pid,
             state: event_state,
-            handled: false
         }
     }
 
-    pub fn cont(&mut self) {
+    pub fn cont(&self) {
         ptrace::cont(self.pid, ipc::signals::Signal::None);
-        self.handled = true;
     }
 
-    pub fn kill(&mut self) {
+    pub fn kill(&self) {
         ptrace::cont(self.pid, ipc::signals::Signal::Kill);
-        self.handled = true;
     }
 }
 
-impl Drop for Event {
-    fn drop(&mut self) {
-        match self.state {
-            _ => assert!(self.handled)
+pub struct ClosureWatcher<'a> {
+    f: Box<FnMut(&Event) + 'a>
+}
+
+impl<'a> ClosureWatcher<'a> {
+    pub fn new(f: Box<FnMut(&Event) + 'a>) -> ClosureWatcher<'a> {
+        ClosureWatcher {
+            f: f
         }
     }
+}
+
+impl<'a> Watcher for ClosureWatcher<'a> {
+    fn notify_event(&mut self, event: &Event) {
+        (self.f)(event);
+    }
+}
+
+pub trait Watcher {
+    fn notify_event(&mut self, event: &Event);
 }

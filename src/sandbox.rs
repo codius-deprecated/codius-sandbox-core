@@ -8,18 +8,22 @@ use executors::Executor;
 use waitpid;
 use events;
 
-pub struct Sandbox<'a> {
+pub struct Sandbox<'a, 'b> {
     pid: libc::pid_t,
     executor: Box<Executor + 'a>,
-    entered_main: bool
+    entered_main: bool,
+    event_watch: Box<events::Watcher + 'b>,
+    running: bool
 }
 
-impl<'a> Sandbox<'a> {
-    pub fn new(exec: Box<Executor + 'a>) -> Sandbox<'a> {
+impl<'a, 'b> Sandbox<'a, 'b> {
+    pub fn new(exec: Box<Executor + 'a>, watcher: Box<events::Watcher + 'b>) -> Sandbox<'a, 'b> {
         Sandbox {
             pid: -1,
             executor: exec,
-            entered_main: false
+            entered_main: false,
+            event_watch: watcher,
+            running: true
         }
     }
 
@@ -155,7 +159,16 @@ impl<'a> Sandbox<'a> {
         }
     }
 
-    pub fn tick(&mut self) -> events::Event {
+    pub fn tick(&mut self) {
+        let event = self.next_event();
+        self.event_watch.notify_event(&event);
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.running
+    }
+
+    fn next_event(&mut self) -> events::Event {
         assert!(self.pid > 0);
         let s = waitpid::wait(-1, waitpid::All);
         let res = s.ok().expect("Could not wait on child");
@@ -191,9 +204,11 @@ impl<'a> Sandbox<'a> {
     pub fn release(&mut self, signal: ipc::signals::Signal) {
         ptrace::release(self.pid, signal);
         self.pid = -1;
+        self.running = false;
     }
 
     pub fn spawn(&mut self) {
+        self.running = true;
         self.pid = unsafe { fork() };
         match self.pid {
             0 => self.exec_child(),

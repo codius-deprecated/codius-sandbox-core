@@ -30,6 +30,13 @@ fn main() {
 
 struct PrintWatcher;
 
+impl events::SyscallHandler for PrintWatcher {
+    fn handle_syscall(&mut self, call: &mut events::Syscall) {
+        println!("Got syscall {:?}", call);
+        call.finish(0);
+    }
+}
+
 impl events::Watcher for PrintWatcher {
     fn notify_event(&mut self, event: &events::Event) {
         match event.state {
@@ -45,17 +52,9 @@ impl events::Watcher for PrintWatcher {
                 println!("Got signal {:?}", s);
                 event.cont();
             },
-            sandbox::events::State::Seccomp(call) => {
-                let s: seccomp::Syscall = FromPrimitive::from_u64(call.call).expect("Unknown syscall");
-                println!("Attemped syscall {:?}({:?})", s, call.args);
-                let reader = ptrace::Reader::new(call.pid);
-                match s {
-                    seccomp::Syscall::OPEN => {
-                        println!("filename: {:?}", str::from_utf8(reader.read_string(call.args[0]).as_slice()).ok().expect("foo"));
-                    },
-                    _ => {}
-                }
-                event.cont();
+            sandbox::events::State::Seccomp(_) => {
+                let mut e = events::Syscall::from_event(*event).expect("Not a syscall?");
+                (self as &mut events::SyscallHandler).handle_syscall(&mut e);
             },
             sandbox::events::State::None => {},
             _ => {

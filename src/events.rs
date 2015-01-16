@@ -16,31 +16,39 @@ pub enum State {
     Seccomp(ptrace::Syscall)
 }
 
-#[derive(Show)]
+#[derive(Show, Copy)]
 pub struct Event {
     pub state: State,
     pid: libc::pid_t,
 }
 
-pub struct Syscall<'a> {
-    pub event: &'a Event,
-    pub call: ptrace::Syscall
+#[derive(Show, Copy)]
+pub struct Syscall {
+    pub call: ptrace::Syscall,
+    pub pid: libc::pid_t,
+    finished: bool
 }
 
-impl<'a> Syscall<'a> {
-    pub fn from_event(event: &'a Event) -> Option<Syscall<'a>> {
+impl Syscall {
+    pub fn from_event(event: Event) -> Option<Syscall> {
         match event.state {
-            State::Seccomp(call) => Option::Some(Syscall{event: event, call: call}),
+            State::Seccomp(call) => Option::Some(Syscall{pid: event.pid, call: call, finished: false}),
             _ => Option::None
         }
     }
 
-    pub fn set_return_value(&mut self, value: ptrace::Word) {
-        self.call.returnVal = value
+    pub fn finish(&mut self, returnVal: ptrace::Word) {
+        assert!(!self.finished);
+        self.call.call = -1;
+        self.call.returnVal = returnVal;
+        self.finished = true;
+        ptrace::cont(self.pid, ipc::signals::Signal::None);
     }
 
-    pub fn skip(&mut self) {
-        self.call.call = -1
+    pub fn kill(&mut self) {
+        assert!(!self.finished);
+        self.finished = true;
+        ptrace::cont(self.pid, ipc::signals::Signal::Kill);
     }
 }
 
@@ -81,4 +89,8 @@ impl<'a> Watcher for ClosureWatcher<'a> {
 
 pub trait Watcher {
     fn notify_event(&mut self, event: &Event);
+}
+
+pub trait SyscallHandler {
+    fn handle_syscall(&mut self, call: &mut Syscall);
 }

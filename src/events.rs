@@ -42,6 +42,14 @@ impl Syscall {
         self.call.call = -1;
         self.call.returnVal = returnVal;
         self.finished = true;
+        self.call.write().ok().expect("Could not write registers");
+        ptrace::cont(self.pid, ipc::signals::Signal::None);
+    }
+
+    pub fn finish_default(&mut self) {
+        assert!(!self.finished);
+        self.finished = true;
+        self.call.write().ok().expect("Could not write registers");
         ptrace::cont(self.pid, ipc::signals::Signal::None);
     }
 

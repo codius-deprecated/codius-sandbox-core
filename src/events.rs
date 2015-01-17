@@ -1,6 +1,9 @@
 extern crate "posix-ipc" as ipc;
 extern crate libc;
 extern crate ptrace;
+extern crate seccomp;
+
+use std::num::FromPrimitive;
 
 use waitpid;
 
@@ -24,6 +27,7 @@ pub struct Event {
 
 #[derive(Show, Copy)]
 pub struct Syscall {
+    pub symbolic: seccomp::Syscall,
     pub call: ptrace::Syscall,
     pub pid: libc::pid_t,
     finished: bool
@@ -32,7 +36,14 @@ pub struct Syscall {
 impl Syscall {
     pub fn from_event(event: Event) -> Option<Syscall> {
         match event.state {
-            State::Seccomp(call) => Option::Some(Syscall{pid: event.pid, call: call, finished: false}),
+            State::Seccomp(call) => Option::Some(
+                Syscall {
+                    pid: event.pid,
+                    call: call,
+                    finished: false,
+                    symbolic: FromPrimitive::from_u64(call.call).expect("Unknown syscall")
+                }
+            ),
             _ => Option::None
         }
     }
@@ -69,7 +80,10 @@ impl Event {
     }
 
     pub fn cont(&self) {
-        ptrace::cont(self.pid, ipc::signals::Signal::None);
+        match self.state {
+            State::Signal(sig) => ptrace::cont(self.pid, sig),
+            _ => ptrace::cont(self.pid, ipc::signals::Signal::None)
+        };
     }
 
     pub fn kill(&self) {

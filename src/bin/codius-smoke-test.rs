@@ -17,7 +17,7 @@ fn main() {
         argv.push(str::from_utf8(arg.as_bytes()).ok().expect("Invalid argv"));
     }
     let exec = sandbox::executors::Execv::new(argv.as_slice());
-    let watcher = PrintWatcher {vfs: VFS};
+    let watcher = PrintWatcher {vfs: sandbox::vfs::VFS};
     let mut sbox = sandbox::Sandbox::new(Box::new(exec), Box::new(watcher));
     sbox.spawn();
     loop {
@@ -28,17 +28,8 @@ fn main() {
     }
 }
 
-struct VFS;
-
-impl events::SyscallHandler for VFS {
-    fn handle_syscall(&mut self, call: &mut events::Syscall) {
-        println!("Got syscall {:?}", call);
-        call.finish_default();
-    }
-}
-
 struct PrintWatcher {
-    vfs: VFS
+    vfs: sandbox::vfs::VFS
 }
 
 impl events::Watcher for PrintWatcher {

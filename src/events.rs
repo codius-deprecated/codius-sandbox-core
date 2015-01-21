@@ -4,6 +4,7 @@ extern crate ptrace;
 extern crate seccomp;
 
 use std::num::FromPrimitive;
+use std::str;
 
 use waitpid;
 

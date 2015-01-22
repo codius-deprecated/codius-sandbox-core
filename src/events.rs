@@ -1,10 +1,10 @@
 extern crate "posix-ipc" as ipc;
+#[allow(unstable)]
 extern crate libc;
 extern crate ptrace;
 extern crate seccomp;
 
 use std::num::FromPrimitive;
-use std::str;
 
 use waitpid;
 
@@ -49,26 +49,26 @@ impl Syscall {
         }
     }
 
-    pub fn finish(&mut self, returnVal: ptrace::Word) {
+    pub fn finish(&mut self, return_val: ptrace::Word) {
         assert!(!self.finished);
         self.call.call = -1;
-        self.call.returnVal = returnVal;
+        self.call.returnVal = return_val;
         self.finished = true;
         self.call.write().ok().expect("Could not write registers");
-        ptrace::cont(self.pid, ipc::signals::Signal::None);
+        ptrace::cont(self.pid, ipc::signals::Signal::None).ok().expect("Could not continue child");
     }
 
     pub fn finish_default(&mut self) {
         assert!(!self.finished);
         self.finished = true;
         self.call.write().ok().expect("Could not write registers");
-        ptrace::cont(self.pid, ipc::signals::Signal::None);
+        ptrace::cont(self.pid, ipc::signals::Signal::None).ok().expect("Could not continue child");
     }
 
     pub fn kill(&mut self) {
         assert!(!self.finished);
         self.finished = true;
-        ptrace::cont(self.pid, ipc::signals::Signal::Kill);
+        ptrace::cont(self.pid, ipc::signals::Signal::Kill).ok().expect("Could not continue child");
     }
 
     pub fn read_string_arg(&self, arg_num: usize) -> String {
@@ -88,13 +88,13 @@ impl Event {
 
     pub fn cont(&self) {
         match self.state {
-            State::Signal(sig) => ptrace::cont(self.pid, sig),
-            _ => ptrace::cont(self.pid, ipc::signals::Signal::None)
+            State::Signal(sig) => ptrace::cont(self.pid, sig).ok().expect("Could not pass signal through to child"),
+            _ => ptrace::cont(self.pid, ipc::signals::Signal::None).ok().expect("Could not continue child")
         };
     }
 
     pub fn kill(&self) {
-        ptrace::cont(self.pid, ipc::signals::Signal::Kill);
+        ptrace::cont(self.pid, ipc::signals::Signal::Kill).ok().expect("Could not kill child");
     }
 }
 

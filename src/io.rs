@@ -1,7 +1,6 @@
+#[allow(unstable)]
 extern crate core;
 
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::io::IoResult;
 
 pub trait Handle {

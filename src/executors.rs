@@ -30,10 +30,8 @@ impl<'a> Executor for Execv<'a> {
         }
         ptrs.push(ptr::null());
 
-        let s;
-
         unsafe {
-            s = libc::execvp(command.as_ptr(), ptrs.as_mut_ptr());
+            libc::execvp(command.as_ptr(), ptrs.as_mut_ptr());
         }
 
         panic!("Could not exec sandboxed module {:?} {:?}", os::last_os_error(), os::errno());
@@ -53,6 +51,7 @@ impl<'a> Function<'a> {
 }
 
 impl<'a> Executor for Function<'a> {
+    #[allow(unstable)]
     fn exec(&mut self) -> ! {
         let ref c = self.closure;
         let st = c();

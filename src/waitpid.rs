@@ -1,3 +1,4 @@
+#[allow(unstable)]
 extern crate libc;
 extern crate ptrace;
 extern crate "posix-ipc" as ipc;
@@ -52,6 +53,7 @@ bitflags! {
     }
 }
 
+#[allow(unstable)]
 pub fn wait(pid: libc::pid_t, opts: Options) -> Result<WaitResult, usize> {
     let mut st: libc::c_int = 0;
     let r;

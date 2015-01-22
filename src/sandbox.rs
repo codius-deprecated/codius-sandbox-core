@@ -33,7 +33,7 @@ impl<'a, 'b> Sandbox<'a, 'b> {
             clearenv(); 
             setpgid(0, 0);
         }
-        ptrace::traceme();
+        ptrace::traceme().ok().expect("Could not request trace");
         ipc::signals::Signal::Stop.raise().ok().expect("Could not stop child");
         self.setup_seccomp();
         self.executor.exec();
@@ -150,7 +150,7 @@ impl<'a, 'b> Sandbox<'a, 'b> {
     }
 
     fn handle_exec(&mut self, res: waitpid::WaitResult) -> events::Event {
-        if (!self.entered_main) {
+        if !self.entered_main {
             self.entered_main = true;
             return events::Event::new(res, events::State::EnteredMain);
         } else {
@@ -186,7 +186,7 @@ impl<'a, 'b> Sandbox<'a, 'b> {
                     _ => panic!("Unhandled ptrace event {:?}", res)
                 },
             waitpid::WaitState::Stopped(s) => {
-                ptrace::cont(res.pid, s);
+                ptrace::cont(res.pid, s).ok().expect("Could not continue child");
                 return events::Event::new(res, events::State::Signal(s));
             },
             waitpid::WaitState::Exited(st) => {

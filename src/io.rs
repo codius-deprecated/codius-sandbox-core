@@ -1,21 +1,19 @@
-pub struct Handle<'a> {
-    local_fd: isize,
-    virt_fd: isize,
-    handler: &'a (Streaming + 'a)
-}
+extern crate core;
 
-impl<'a> Handle<'a> {
-    pub fn new(handler: &'a (Streaming + 'a), local_fd: isize) -> Self {
-        Handle {
-            local_fd: local_fd,
-            virt_fd: -1,
-            handler: handler
-        }
-    }
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::io::IoResult;
+
+pub trait Handle {
+    fn get_local_fd(&self) -> i32;
+    fn get_virt_fd(&self) -> i32;
+    fn read(&self, buf: &mut [u8]) -> IoResult<isize>;
+    fn write(&mut self, buf: &[u8]) -> IoResult<isize>;
+    fn close(&mut self) -> IoResult<()>;
 }
 
 pub trait Streaming {
-    fn do_write(&mut self, handle: &Handle, buf: &[u8]) -> isize;
-    fn do_read(&mut self, handle: &Handle, buf: &[u8]) -> isize;
-    fn do_close(&mut self, handle: &Handle);
+    fn do_write(&mut self, handle: &Handle, buf: &[u8]) -> IoResult<isize>;
+    fn do_read(&self, handle: &Handle, buf: &mut [u8]) -> IoResult<isize>;
+    fn do_close(&mut self, handle: &Handle) -> IoResult<()>;
 }

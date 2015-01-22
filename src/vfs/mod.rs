@@ -63,8 +63,10 @@ pub trait Filesystem: io::Streaming {
     fn do_stat(&self, path: &str) -> IoResult<FileStat>;
 }
 
+pub type FsRef<'fs> = Rc<RefCell<Box<Filesystem + 'fs>>>;
+
 pub struct VFS<'fs> {
-    filesystems: HashMap<String, Rc<RefCell<Box<Filesystem + 'fs>>>>,
+    filesystems: HashMap<String, FsRef<'fs>>,
     cwd: String,
     next_fd: i32,
     open_fds: HashMap<i32, Handle<'fs>>
@@ -85,11 +87,18 @@ impl<'fs> events::SyscallHandler for VFS<'fs> {
 
 impl<'fs> VFS<'fs> {
 
-    fn get_filesystem_from_arg(&self, call: &events::Syscall, argnum: usize) -> Option<(String, &Rc<RefCell<Box<Filesystem +'fs>>>)> {
+    fn with_filename_arg<T>(&self, call: &mut events::Syscall, arg_num: usize, f: &mut FnMut(&mut events::Syscall, String, &FsRef<'fs>) -> Option<T>) -> Option<T> {
+        match self.get_filesystem_from_arg(call, arg_num) {
+            None => {call.finish(2);None},
+            Some((path, fs)) => f(call, path, fs)
+        }
+    }
+
+    fn get_filesystem_from_arg(&self, call: &events::Syscall, argnum: usize) -> Option<(String, &FsRef<'fs>)> {
         self.get_filesystem(&*call.read_string_arg(argnum))
     }
 
-    fn get_filesystem(&self, path: &str) -> Option<(String, &Rc<RefCell<Box<Filesystem + 'fs>>>)> {
+    fn get_filesystem(&self, path: &str) -> Option<(String, &FsRef<'fs>)> {
         //FIXME: Search for longest mount point instead of first match
         let abs_path;
         if path.chars().next() == Some('.') {
@@ -123,32 +132,25 @@ impl<'fs> VFS<'fs> {
     }
 
     fn do_access(&self, call: &mut events::Syscall) {
-        match self.get_filesystem_from_arg(call, 0) {
-            None => call.finish(2),
-            Some((path, fs)) =>
-                match fs.borrow_mut().do_access(&path[]) {
-                    Ok(_) => call.finish(0),
-                    Err(err) => call.finish(err.kind.to_errno())
-                }
-        }
+        self.with_filename_arg(call, 0, &mut |call, path, fs| {
+            Some(match fs.borrow_mut().do_access(&path[]) {
+                Ok(_) => call.finish(0),
+                Err(err) => call.finish(err.kind.to_errno())
+            })
+        });
     }
 
     fn do_open(&mut self, call: &mut events::Syscall) {
-        let mut new_fd: Option<Handle> = None;
-        match self.get_filesystem_from_arg(call, 0) {
-            None => call.finish(2),
-            Some((path, fs)) => {
-                match fs.borrow_mut().do_open(&path[], 0, 0) {
-                    Ok(fd) => {
-                        new_fd = Some(Handle::new(fs.clone(), self.next_fd + 1, fd));
-                    },
-                    Err(err) => {
-                        call.finish(err.kind.to_errno())
-                    }
+        match self.with_filename_arg(call, 0, &mut |call, path, fs| {
+            match fs.borrow_mut().do_open(&path[], 0, 0) {
+                Ok(fd) =>
+                    Some(Handle::new(fs.clone(), self.next_fd + 1, fd)),
+                Err(err) => {
+                    call.finish(err.kind.to_errno());
+                    None
                 }
             }
-        }
-        match new_fd {
+        }) {
             Some(fd) => {
                 let fd_num = (&fd as &io::Handle).get_virt_fd();
                 self.open_fds.insert(fd_num, fd);

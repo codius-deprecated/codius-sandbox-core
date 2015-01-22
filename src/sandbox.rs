@@ -33,7 +33,6 @@ impl<'a, 'b> Sandbox<'a, 'b> {
             clearenv(); 
             setpgid(0, 0);
         }
-        ptrace::traceme().ok().expect("Could not request trace");
         ipc::signals::Signal::Stop.raise().ok().expect("Could not stop child");
         self.setup_seccomp();
         self.executor.exec();

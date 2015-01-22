@@ -8,6 +8,8 @@ use std::io::{IoResult, IoErrorKind};
 use std::rc::Rc;
 use std::cell::RefCell;
 
+pub mod native;
+
 trait AsErrno {fn to_errno(&self) -> u64;}
 
 impl AsErrno for IoErrorKind {
@@ -83,7 +85,7 @@ impl<'fs> VFS<'fs> {
     fn get_filesystem(&self, path: &str) -> Option<(String, &Rc<RefCell<Box<Filesystem + 'fs>>>)> {
         //FIXME: Search for longest mount point instead of first match
         let abs_path;
-        if (path.chars().next() == Some('.')) {
+        if path.chars().next() == Some('.') {
             abs_path = self.cwd.clone() + path;
         } else {
             abs_path = String::from_str(path);

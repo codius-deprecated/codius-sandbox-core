@@ -34,11 +34,11 @@ impl<'fs> io::Handle for Handle<'fs> {
         self._virt_fd
     }
 
-    fn read(&self, buf: &mut [u8]) -> IoResult<isize> {
-        self._fs.borrow().do_read(self, buf)
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        self._fs.borrow_mut().do_read(self, buf)
     }
 
-    fn write(&mut self, buf: &[u8]) -> IoResult<isize> {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
         self._fs.borrow_mut().do_write(self, buf)
     }
 

@@ -31,11 +31,11 @@ impl vfs::Filesystem for NativeFS {
 }
 
 impl io::Streaming for NativeFS {
-    fn do_write(&mut self, handle: &io::Handle, buf: &[u8]) -> IoResult<isize> {
+    fn do_write(&mut self, handle: &io::Handle, buf: &[u8]) -> IoResult<usize> {
         Ok(0)
     }
 
-    fn do_read(&self, handle: &io::Handle, buf: &mut [u8]) -> IoResult<isize> {
+    fn do_read(&mut self, handle: &io::Handle, buf: &mut [u8]) -> IoResult<usize> {
         Ok(0)
     }
 

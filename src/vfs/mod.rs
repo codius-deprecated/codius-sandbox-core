@@ -4,7 +4,7 @@ use io;
 use events;
 use self::seccomp::Syscall;
 use std::collections::HashMap;
-use std::io::{IoResult, IoErrorKind};
+use std::io::{IoResult, IoErrorKind, FileStat};
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -59,7 +59,8 @@ impl<'fs> Handle<'fs> {
 
 pub trait Filesystem: io::Streaming {
     fn do_open(&mut self, path: &str, flags: i32, mode: i32) -> IoResult<i32>;
-    fn do_access(&self, path: &str);
+    fn do_access(&self, path: &str) -> IoResult<()>;
+    fn do_stat(&self, path: &str) -> IoResult<FileStat>;
 }
 
 pub struct VFS<'fs> {
@@ -74,6 +75,7 @@ impl<'fs> events::SyscallHandler for VFS<'fs> {
         match call.symbolic {
             Syscall::ACCESS => self.do_access(call),
             Syscall::OPEN => self.do_open(call),
+            Syscall::STAT => self.do_stat(call),
             _ => {
                 println!("Got unhandled syscall {:?}", call);
             }
@@ -82,6 +84,11 @@ impl<'fs> events::SyscallHandler for VFS<'fs> {
 }
 
 impl<'fs> VFS<'fs> {
+
+    fn get_filesystem_from_arg(&self, call: &events::Syscall, argnum: usize) -> Option<(String, &Rc<RefCell<Box<Filesystem +'fs>>>)> {
+        self.get_filesystem(&*call.read_string_arg(argnum))
+    }
+
     fn get_filesystem(&self, path: &str) -> Option<(String, &Rc<RefCell<Box<Filesystem + 'fs>>>)> {
         //FIXME: Search for longest mount point instead of first match
         let abs_path;
@@ -105,18 +112,30 @@ impl<'fs> VFS<'fs> {
         self.filesystems.insert(String::from_str(mount_point), Rc::new(RefCell::new(fs)));
     }
 
-    fn do_access(&self, call: &mut events::Syscall) {
+    fn do_stat(&self, call: &mut events::Syscall) {
         let fname = call.read_string_arg(0);
-        let fs_opt = self.get_filesystem(&*fname);
-        //let fs = self.get_filesystem(&*fname).expect("no fs");
-        println!("Accessed a file: {:?}", fname);
-        call.finish_default();
+        match self.get_filesystem_from_arg(call, 0) {
+            None => call.finish(2),
+            Some((path, fs)) => {
+                call.finish(1)
+            }
+        }
+    }
+
+    fn do_access(&self, call: &mut events::Syscall) {
+        match self.get_filesystem_from_arg(call, 0) {
+            None => call.finish(2),
+            Some((path, fs)) =>
+                match fs.borrow_mut().do_access(&path[]) {
+                    Ok(_) => call.finish(0),
+                    Err(err) => call.finish(err.kind.to_errno())
+                }
+        }
     }
 
     fn do_open(&mut self, call: &mut events::Syscall) {
-        let fname = &*call.read_string_arg(0);
         let mut new_fd: Option<Handle> = None;
-        match self.get_filesystem(fname) {
+        match self.get_filesystem_from_arg(call, 0) {
             None => call.finish(2),
             Some((path, fs)) => {
                 match fs.borrow_mut().do_open(&path[], 0, 0) {

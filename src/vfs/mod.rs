@@ -122,13 +122,36 @@ impl<'fs> VFS<'fs> {
     }
 
     fn do_stat(&self, call: &mut events::Syscall) {
-        let fname = call.read_string_arg(0);
-        match self.get_filesystem_from_arg(call, 0) {
-            None => call.finish(2),
-            Some((path, fs)) => {
-                call.finish(1)
-            }
-        }
+        self.with_filename_arg(call, 0, &mut |call, path, fs| {
+            Some(match fs.borrow_mut().do_stat(&path[]) {
+                Ok(sbuf) => {
+                    call.write_buf_arg(0, &Stat {
+                        st_dev: sbuf.unstable.device,
+                        st_ino: sbuf.unstable.inode,
+                        st_mode: sbuf.perm.bits() as i64,
+                        st_nlink: sbuf.unstable.nlink,
+                        st_uid: sbuf.unstable.uid as i64,
+                        st_gid: sbuf.unstable.gid as i64,
+                        st_rdev: sbuf.unstable.rdev,
+                        st_size: sbuf.size as i64,
+                        st_blksize: sbuf.unstable.blksize as i64,
+                        st_blocks: sbuf.unstable.blocks as i64,
+                        st_atime: sbuf.accessed,
+                        st_atime_nsec: 0,
+                        st_mtime: sbuf.modified,
+                        st_mtime_nsec: 0,
+                        st_ctime: sbuf.created,
+                        st_ctime_nsec: 0,
+                        __pad0: 0,
+                        __pad1: 0,
+                        __pad2: 0,
+                        __pad3: 0
+                    });
+                    call.finish(0)
+                },
+                Err(err) => call.finish(err.kind.to_errno())
+            })
+        });
     }
 
     fn do_access(&self, call: &mut events::Syscall) {
@@ -168,4 +191,29 @@ impl<'fs> VFS<'fs> {
             open_fds: HashMap::new()
         }
     }
+}
+
+#[repr(C)]
+struct Stat {
+    st_dev: u64,
+    st_ino: u64,
+    st_nlink: u64,
+
+    st_mode: i64,
+    st_uid: i64,
+    st_gid: i64,
+    __pad0: i64,
+    st_rdev: u64,
+    st_size: i64,
+    st_blksize: i64,
+    st_blocks: i64,
+    st_atime: u64,
+    st_atime_nsec: u64,
+    st_mtime: u64,
+    st_mtime_nsec: u64,
+    st_ctime: u64,
+    st_ctime_nsec: u64,
+    __pad1: i64,
+    __pad2: i64,
+    __pad3: i64,
 }

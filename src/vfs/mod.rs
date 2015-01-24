@@ -69,7 +69,8 @@ pub struct VFS<'fs> {
     filesystems: HashMap<String, FsRef<'fs>>,
     cwd: String,
     next_fd: i32,
-    open_fds: HashMap<i32, Handle<'fs>>
+    open_fds: HashMap<i32, Handle<'fs>>,
+    whitelist: Vec<String>
 }
 
 impl<'fs> events::SyscallHandler for VFS<'fs> {
@@ -94,8 +95,22 @@ impl<'fs> VFS<'fs> {
         }
     }
 
+    fn is_whitelisted(&self, name: &String) -> bool {
+        for f in self.whitelist.iter() {
+            if f == name {
+                return true;
+            }
+        }
+        false
+    }
+
     fn get_filesystem_from_arg(&self, call: &events::Syscall, argnum: usize) -> Option<(String, &FsRef<'fs>)> {
-        self.get_filesystem(&*call.read_string_arg(argnum))
+        let fname = call.read_string_arg(argnum);
+        if !self.is_whitelisted(&fname) {
+            self.get_filesystem(&*fname)
+        } else {
+            None
+        }
     }
 
     fn get_filesystem(&self, path: &str) -> Option<(String, &FsRef<'fs>)> {
@@ -184,12 +199,44 @@ impl<'fs> VFS<'fs> {
     }
 
     pub fn new() -> VFS<'fs> {
-        VFS {
+        let mut r = VFS {
             filesystems: HashMap::new(),
             cwd: String::new(),
             next_fd: 0,
-            open_fds: HashMap::new()
-        }
+            open_fds: HashMap::new(),
+            whitelist: Vec::new()
+        };
+
+        r.whitelist.push(String::from_str("/lib64/libc.so.6"));
+        r.whitelist.push(String::from_str ("/lib64/tls/x86_64/libc.so.6"));
+        r.whitelist.push(String::from_str ("/lib64/tls/x86_64/libdl.so.2"));
+        r.whitelist.push(String::from_str ("/lib64/tls/x86_64/librt.so.1"));
+        r.whitelist.push(String::from_str ("/lib64/tls/x86_64/libpthread.so.0"));
+        r.whitelist.push(String::from_str ("/lib64/tls/libc.so.6"));
+        r.whitelist.push(String::from_str ("/lib64/tls/libdl.so.2"));
+        r.whitelist.push(String::from_str ("/lib64/tls/librt.so.1"));
+        r.whitelist.push(String::from_str ("/lib64/tls/libstdc++.so.6"));
+        r.whitelist.push(String::from_str ("/lib64/tls/libm.so.6"));
+        r.whitelist.push(String::from_str ("/lib64/tls/libgcc_s.so.1"));
+        r.whitelist.push(String::from_str ("/lib64/tls/libpthread.so.0"));
+        r.whitelist.push(String::from_str ("/lib64/x86_64/libc.so.6"));
+        r.whitelist.push(String::from_str ("/lib64/x86_64/libdl.so.2"));
+        r.whitelist.push(String::from_str ("/lib64/x86_64/librt.so.1"));
+        r.whitelist.push(String::from_str ("/lib64/libc.so.6"));
+        r.whitelist.push(String::from_str ("/lib64/libdl.so.2"));
+        r.whitelist.push(String::from_str ("/lib64/librt.so.1"));
+        r.whitelist.push(String::from_str ("/lib64/libgcc_s.so.1"));
+        r.whitelist.push(String::from_str ("/lib64/libpthread.so.0"));
+
+        r.whitelist.push(String::from_str ("/lib64/libstdc++.so.6"));
+        r.whitelist.push(String::from_str ("/lib64/libm.so.6"));
+
+        r.whitelist.push(String::from_str ("/etc/ld.so.cache"));
+        r.whitelist.push(String::from_str ("/etc/ld.so.preload"));
+
+        r.whitelist.push(String::from_str ("/proc/self/exe"));
+
+        r
     }
 }
 

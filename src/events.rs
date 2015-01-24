@@ -76,6 +76,11 @@ impl Syscall {
         let s = reader.read_string(self.call.args[arg_num]);
         return String::from_utf8(s).ok().expect("Could not read string argument");
     }
+
+    pub fn write_buf_arg<T: Sized>(&self, arg_num: usize, buf: &T) -> Result<(), usize> {
+        let writer = ptrace::Writer::new(self.pid);
+        writer.write_object (self.call.args[arg_num], buf)
+    }
 }
 
 impl Event {

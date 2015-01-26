@@ -158,6 +158,16 @@ impl<'a, 'b> Sandbox<'a, 'b> {
         }
     }
 
+    pub fn exec(&mut self) {
+        self.spawn();
+        loop {
+            if !self.is_running() {
+                break
+            }
+            self.tick()
+        }
+    }
+
     pub fn tick(&mut self) {
         let event = self.next_event();
         self.event_watch.notify_event(&event);

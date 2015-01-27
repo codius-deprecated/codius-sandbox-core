@@ -25,7 +25,7 @@ fn do_exec(mut exec: Box<executors::Executor>) -> Result<(), ()> {
 
 #[test]
 fn exec_bin_false() {
-    let argv = ["/usr/bin/true"];
+    let argv = ["/bin/true"];
     let exec: Box<executors::Executor> = Box::new(executors::Execv::new(&argv));
     do_exec(exec).ok().expect("Could not spawn /usr/bin/true");
 }

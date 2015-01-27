@@ -3,7 +3,7 @@ extern crate "codius-sandbox-core" as sandbox;
 extern crate "posix-ipc" as ipc;
 
 #[test]
-fn intercept_exec() {
+fn intercept_exit() {
     let mut exit_status = 0;
     {
         let mut watcher = sandbox::events::ClosureWatcher::new(Box::new(|&mut:event: &sandbox::events::Event| {

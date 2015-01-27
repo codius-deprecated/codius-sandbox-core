@@ -189,8 +189,10 @@ impl<'a, 'b> Sandbox<'a, 'b> {
                     ptrace::Event::Exec => self.handle_exec(res),
                     ptrace::Event::Seccomp =>
                         events::Event::new(res, events::State::Seccomp(ptrace::Syscall::from_pid(res.pid))),
-                    ptrace::Event::Exit =>
-                        events::Event::new(res, events::State::Exit(0)),
+                    ptrace::Event::Exit => {
+                        self.release(ipc::signals::Signal::None);
+                        events::Event::new(res, events::State::Exit(0))
+                    },
                     _ => panic!("Unhandled ptrace event {:?}", res)
                 },
             waitpid::WaitState::Stopped(s) => {

@@ -205,7 +205,9 @@ impl<'a, 'b> Sandbox<'a, 'b> {
             waitpid::WaitState::Exited(st) => {
                 self.release(ipc::signals::Signal::None);
                 return events::Event::new(res, events::State::Exit(st));
-            }
+            },
+            waitpid::WaitState::Signaled(s) =>
+                events::Event::new(res, events::State::Signal(s)),
             _ => panic!("Unknown state {:?}", res)
         }
     }

@@ -139,7 +139,6 @@ impl<'a, 'b> Sandbox<'a, 'b> {
     fn attach_to_child(&self) {
         ptrace::attach(self.pid).ok().expect("Could not attach.");
         let s = waitpid::wait(self.pid, waitpid::None);
-        println!("post attach: {:?}", s);
         s.ok().expect("Could not wait for child to enter ptrace");
         ptrace::setoptions(self.pid,
                            ptrace::TraceExit | ptrace::ExitKill |

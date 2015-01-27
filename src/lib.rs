@@ -6,3 +6,6 @@ pub mod vfs;
 pub mod io;
 
 mod waitpid;
+
+#[cfg(test)]
+mod executors_tests;

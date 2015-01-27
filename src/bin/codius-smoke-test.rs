@@ -8,6 +8,14 @@ use std::str;
 use sandbox::events;
 use sandbox::vfs;
 
+struct NullWatcher;
+
+impl sandbox::events::Watcher for NullWatcher {
+    fn notify_event(&mut self, event: &events::Event) {
+        event.cont();
+    }
+}
+
 #[main]
 fn main() {
     let args = os::args();
@@ -20,7 +28,8 @@ fn main() {
     let exec = sandbox::executors::Execv::new(argv.as_slice());
     let mut watcher = PrintWatcher {vfs: vfs::VFS::new()};
     watcher.vfs.mount_filesystem("/", Box::new(vfs::native::NativeFS::new(Path::new("/"))));
-    let mut sbox = sandbox::Sandbox::new(Box::new(exec), Box::new(watcher));
+    let mut w = NullWatcher;
+    let mut sbox = sandbox::Sandbox::new(Box::new(exec), &mut w);
     sbox.spawn();
     loop {
         if !sbox.is_running() {

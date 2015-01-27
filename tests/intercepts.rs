@@ -6,7 +6,7 @@ extern crate "posix-ipc" as ipc;
 fn intercept_exec() {
     let mut exit_status = 0;
     {
-        let watcher = sandbox::events::ClosureWatcher::new(Box::new(|&mut:event: &sandbox::events::Event| {
+        let mut watcher = sandbox::events::ClosureWatcher::new(Box::new(|&mut:event: &sandbox::events::Event| {
             match event.state {
                 sandbox::events::State::Exit(st) =>
                     exit_status = st,
@@ -14,7 +14,7 @@ fn intercept_exec() {
             }
         }));
         let exec = sandbox::executors::Function::new(Box::new(move |&:| -> i32 {0}));
-        let mut sbox = sandbox::Sandbox::new(Box::new(exec), Box::new(watcher));
+        let mut sbox = sandbox::Sandbox::new(Box::new(exec), &mut watcher);
         sbox.spawn();
         loop {
             if !sbox.is_running() {

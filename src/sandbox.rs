@@ -12,12 +12,12 @@ pub struct Sandbox<'a, 'b> {
     pid: libc::pid_t,
     executor: Box<Executor + 'a>,
     entered_main: bool,
-    event_watch: Box<events::Watcher + 'b>,
+    event_watch: &'b mut (events::Watcher + 'b),
     running: bool
 }
 
 impl<'a, 'b> Sandbox<'a, 'b> {
-    pub fn new(exec: Box<Executor + 'a>, watcher: Box<events::Watcher + 'b>) -> Sandbox<'a, 'b> {
+    pub fn new(exec: Box<Executor + 'a>, watcher: &'b mut (events::Watcher + 'b)) -> Sandbox<'a, 'b> {
         Sandbox {
             pid: -1,
             executor: exec,

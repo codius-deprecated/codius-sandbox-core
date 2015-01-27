@@ -195,7 +195,6 @@ impl<'a, 'b> Sandbox<'a, 'b> {
                     _ => panic!("Unhandled ptrace event {:?}", res)
                 },
             waitpid::WaitState::Stopped(s) => {
-                ptrace::cont(res.pid, s).ok().expect("Could not continue child");
                 return events::Event::new(res, events::State::Signal(s));
             },
             waitpid::WaitState::Exited(st) => {

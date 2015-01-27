@@ -94,6 +94,7 @@ impl Event {
     pub fn cont(&self) {
         match self.state {
             State::Signal(sig) => ptrace::cont(self.pid, sig).ok().expect("Could not pass signal through to child"),
+            State::Exit(e) => {ptrace::cont(self.pid, ipc::signals::Signal::None);0},
             _ => ptrace::cont(self.pid, ipc::signals::Signal::None).ok().expect("Could not continue child")
         };
     }

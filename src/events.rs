@@ -55,20 +55,20 @@ impl Syscall {
         self.call.returnVal = return_val;
         self.finished = true;
         self.call.write().ok().expect("Could not write registers");
-        ptrace::cont(self.pid, ipc::signals::Signal::None).ok().expect("Could not continue child");
+        ptrace::cont(self.pid, ipc::signals::Signal::None).ok().expect("Could not finish event");
     }
 
     pub fn finish_default(&mut self) {
         assert!(!self.finished);
         self.finished = true;
         self.call.write().ok().expect("Could not write registers");
-        ptrace::cont(self.pid, ipc::signals::Signal::None).ok().expect("Could not continue child");
+        ptrace::cont(self.pid, ipc::signals::Signal::None).ok().expect("Could not finish event w/ default");
     }
 
     pub fn kill(&mut self) {
         assert!(!self.finished);
         self.finished = true;
-        ptrace::cont(self.pid, ipc::signals::Signal::Kill).ok().expect("Could not continue child");
+        ptrace::cont(self.pid, ipc::signals::Signal::Kill).ok().expect("Could not finish event w/ kill");
     }
 
     pub fn read_string_arg(&self, arg_num: usize) -> String {

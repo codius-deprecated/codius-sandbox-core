@@ -1,5 +1,8 @@
+extern crate libc;
 extern crate "codius-sandbox-core" as sandbox;
 extern crate "posix-ipc" as ipc;
+
+use std::num::FromPrimitive;
 
 struct NullWatcher;
 
@@ -9,14 +12,39 @@ impl sandbox::events::Watcher for NullWatcher {
 }
 
 #[test]
-fn release() {
+fn exec_and_release() {
     let exec = sandbox::executors::Function::new(Box::new(move |&:| -> i32 {0}));
     let mut watch = NullWatcher;
     let mut sbox = sandbox::Sandbox::new(Box::new(exec), &mut watch);
     sbox.spawn();
     assert!(sbox.get_pid() != -1);
+    assert!(sbox.is_running());
     sbox.release(ipc::signals::Signal::Cont);
     assert!(sbox.get_pid() == -1);
+    assert!(!sbox.is_running());
+}
+
+#[test]
+fn release_with_kill() {
+    let exec = sandbox::executors::Function::new(Box::new(move |&:| -> i32 {0}));
+    let mut watch = NullWatcher;
+    let mut sbox = sandbox::Sandbox::new(Box::new(exec), &mut watch);
+    sbox.spawn();
+    let pid = sbox.get_pid();
+    assert!(pid != -1);
+    sbox.tick();
+    sbox.release(ipc::signals::Signal::Kill);
+    assert!(!sbox.is_running());
+    assert!(sbox.get_pid() == -1);
+
+    let mut st: libc::c_int = 0;
+    assert!(unsafe { waitpid(pid, &mut st, 0) } == pid);
+    let sig: ipc::signals::Signal = FromPrimitive::from_i32(st & 0x7f).expect("unknown signal");
+    assert!(sig == ipc::signals::Signal::Kill);
+
+    extern "C" {
+        fn waitpid(pid: libc::pid_t, st: *mut libc::c_int, options: libc::c_int) -> libc::pid_t;
+    }
 }
 
 struct ExitStateWatcher {

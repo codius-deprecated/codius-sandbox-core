@@ -19,18 +19,18 @@ pub enum WaitState {
 
 impl WaitState {
     pub fn from_i32(v: i32) -> Self {
-        if v & 0xff == 0x7f {
+        if v & 0xff == 0x7f { //WIFSTOPPED
             let sig = FromPrimitive::from_i32((v & 0xff00) >> 8).expect("Unknown signal");
             let evt = ptrace::Event::from_wait_status(v);
             match evt {
                 Option::Some(s) => WaitState::PTrace(s),
                 Option::None => WaitState::Stopped(sig)
             }
-        } else if v == 0xffff {
+        } else if v == 0xffff { //WIFCONTINUED
             WaitState::Continued
-        } else if (v & 0xff00) >> 8 == 0 {
-            WaitState::Exited((v & 0xff) as isize)
-        } else if (((v & 0x7f) + 1) >> 1) > 0 {
+        } else if (v & 0x7f) == 0 { // WIFEXITED
+            WaitState::Exited(((v & 0xff00) >> 8) as isize)
+        } else if (((v & 0x7f) + 1) >> 1) > 0 { // WIFSIGNALED
             WaitState::Signaled(FromPrimitive::from_i32(v & 0x7f).expect("Unknown signal"))
         } else {
             panic! ("Unknown wait state: {:?}", v);

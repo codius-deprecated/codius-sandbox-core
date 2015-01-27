@@ -7,6 +7,7 @@ extern crate "posix-ipc" as ipc;
 use executors::Executor;
 use waitpid;
 use events;
+use std::os;
 
 pub struct Sandbox<'a, 'b> {
     pid: libc::pid_t,
@@ -140,10 +141,13 @@ impl<'a, 'b> Sandbox<'a, 'b> {
         ptrace::attach(self.pid).ok().expect("Could not attach.");
         let s = waitpid::wait(self.pid, waitpid::None);
         s.ok().expect("Could not wait for child to enter ptrace");
-        ptrace::setoptions(self.pid,
+        match ptrace::setoptions(self.pid,
                            ptrace::TraceExit | ptrace::ExitKill |
                            ptrace::TraceSeccomp | ptrace::TraceExec |
-                           ptrace::TraceClone).ok().expect("Could not set options");
+                           ptrace::TraceClone) {
+            Ok(_) => {},
+            Err(_) => panic!("Could not set options: {:?}", os::last_os_error())
+        }
         ptrace::cont(self.pid, ipc::signals::Signal::None).ok().expect("Could not continue");
     }
 

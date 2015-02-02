@@ -7,17 +7,18 @@ extern crate "posix-ipc" as ipc;
 use executors::Executor;
 use waitpid;
 use events;
+use std::os;
 
 pub struct Sandbox<'a, 'b> {
     pid: libc::pid_t,
     executor: Box<Executor + 'a>,
     entered_main: bool,
-    event_watch: Box<events::Watcher + 'b>,
+    event_watch: &'b mut (events::Watcher + 'b),
     running: bool
 }
 
 impl<'a, 'b> Sandbox<'a, 'b> {
-    pub fn new(exec: Box<Executor + 'a>, watcher: Box<events::Watcher + 'b>) -> Sandbox<'a, 'b> {
+    pub fn new(exec: Box<Executor + 'a>, watcher: &'b mut (events::Watcher + 'b)) -> Sandbox<'a, 'b> {
         Sandbox {
             pid: -1,
             executor: exec,
@@ -139,12 +140,14 @@ impl<'a, 'b> Sandbox<'a, 'b> {
     fn attach_to_child(&self) {
         ptrace::attach(self.pid).ok().expect("Could not attach.");
         let s = waitpid::wait(self.pid, waitpid::None);
-        println!("post attach: {:?}", s);
         s.ok().expect("Could not wait for child to enter ptrace");
-        ptrace::setoptions(self.pid,
+        match ptrace::setoptions(self.pid,
                            ptrace::TraceExit | ptrace::ExitKill |
                            ptrace::TraceSeccomp | ptrace::TraceExec |
-                           ptrace::TraceClone).ok().expect("Could not set options");
+                           ptrace::TraceClone) {
+            Ok(_) => {},
+            Err(_) => panic!("Could not set options: {:?}", os::last_os_error())
+        }
         ptrace::cont(self.pid, ipc::signals::Signal::None).ok().expect("Could not continue");
     }
 
@@ -155,6 +158,16 @@ impl<'a, 'b> Sandbox<'a, 'b> {
         } else {
             self.release(ipc::signals::Signal::Kill);
             return events::Event::new(res, events::State::Released(ipc::signals::Signal::Kill));
+        }
+    }
+
+    pub fn exec(&mut self) {
+        self.spawn();
+        loop {
+            if !self.is_running() {
+                break
+            }
+            self.tick()
         }
     }
 
@@ -180,18 +193,21 @@ impl<'a, 'b> Sandbox<'a, 'b> {
                     ptrace::Event::Exec => self.handle_exec(res),
                     ptrace::Event::Seccomp =>
                         events::Event::new(res, events::State::Seccomp(ptrace::Syscall::from_pid(res.pid))),
-                    ptrace::Event::Exit =>
-                        events::Event::new(res, events::State::Exit(0)),
+                    ptrace::Event::Exit => {
+                        self.release(ipc::signals::Signal::None);
+                        events::Event::new(res, events::State::Exit(0))
+                    },
                     _ => panic!("Unhandled ptrace event {:?}", res)
                 },
             waitpid::WaitState::Stopped(s) => {
-                ptrace::cont(res.pid, s).ok().expect("Could not continue child");
                 return events::Event::new(res, events::State::Signal(s));
             },
             waitpid::WaitState::Exited(st) => {
                 self.release(ipc::signals::Signal::None);
                 return events::Event::new(res, events::State::Exit(st));
-            }
+            },
+            waitpid::WaitState::Signaled(s) =>
+                events::Event::new(res, events::State::Signal(s)),
             _ => panic!("Unknown state {:?}", res)
         }
     }

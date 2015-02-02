@@ -31,10 +31,8 @@ impl<'a> Executor for Execv<'a> {
         ptrs.push(ptr::null());
 
         unsafe {
-            libc::execvp(command.as_ptr(), ptrs.as_mut_ptr());
-        }
-
-        panic!("Could not exec sandboxed module {:?} {:?}", os::last_os_error(), os::errno());
+            libc::exit(libc::execvp(command.as_ptr(), ptrs.as_mut_ptr()));
+        };
     }
 }
 

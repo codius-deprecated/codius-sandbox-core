@@ -1,4 +1,5 @@
 language: rust
+rust: 1.0.0-alpha
 before_install:
   - sudo apt-add-repository -y ppa:ubuntu-lxc/daily
   - sudo apt-get update

@@ -2,6 +2,8 @@
 extern crate "codius-sandbox-core" as sandbox;
 extern crate seccomp;
 extern crate ptrace;
+#[macro_use]
+extern crate log;
 
 use std::os;
 use std::str;
@@ -16,7 +18,25 @@ impl sandbox::events::Watcher for NullWatcher {
     }
 }
 
+struct PrintLogger;
+
+impl log::Log for PrintLogger {
+    fn enabled(&self, level: log::LogLevel, _module: &str) -> bool {
+        level <= log::LogLevel::Trace
+    }
+
+    fn log(&self, record: &log::LogRecord) {
+        if self.enabled(record.level(), record.location().module_path) {
+            println!("{}: {}", record.level(), record.args());
+        }
+    }
+}
+
 fn main() {
+    log::set_logger(|max_log_level| {
+        max_log_level.set(log::LogLevelFilter::Trace);
+        Box::new(PrintLogger)
+    });
     let args = os::args();
     let mut argv = Vec::new();
     let mut i = args.iter();
@@ -27,8 +47,7 @@ fn main() {
     let exec = sandbox::executors::Execv::new(argv.as_slice());
     let mut watcher = PrintWatcher {vfs: vfs::VFS::new()};
     watcher.vfs.mount_filesystem("/", Box::new(vfs::native::NativeFS::new(Path::new("/"))));
-    let mut w = NullWatcher;
-    let mut sbox = sandbox::Sandbox::new(Box::new(exec), &mut w);
+    let mut sbox = sandbox::Sandbox::new(Box::new(exec), &mut watcher);
     sbox.spawn();
     loop {
         if !sbox.is_running() {
@@ -46,15 +65,15 @@ impl<'a> events::Watcher for PrintWatcher<'a> {
     fn notify_event(&mut self, event: &events::Event) {
         match event.state {
             events::State::Exit(st) => {
-                println!("Child exited with {:?}", st);
+                info!("Child exited with {:?}", st);
                 event.cont();
             },
             events::State::EnteredMain => {
-                println!("Child has entered main()");
+                info!("Child has entered main()");
                 event.cont();
             },
             events::State::Signal(s) => {
-                println!("Got signal {:?}", s);
+                info!("Got signal {:?}", s);
                 event.cont();
             },
             events::State::Seccomp(_) => {

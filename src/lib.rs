@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate bitflags;
+#[macro_use]
+extern crate log;
 
 pub use sandbox::Sandbox;
 pub mod sandbox;

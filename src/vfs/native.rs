@@ -29,7 +29,7 @@ impl NativeFS {
 impl vfs::Filesystem for NativeFS {
     #[allow(unstable)]
     fn do_open(&mut self, path: &str, flags: i32, mode: i32) -> IoResult<i32> {
-        println!("Opening {:?}", self.root.join(path));
+        trace!("Opening {:?}", self.root.join(path));
         let f = File::open_mode(&self.root.join(path), Open, Read);
         match f {
             Ok(fd) => {
@@ -42,7 +42,7 @@ impl vfs::Filesystem for NativeFS {
     }
 
     fn do_access(&self, path: &str) -> IoResult<()>{
-        println!("Accessing {:?}", self.root.join(path));
+        trace!("Accessing {:?}", self.root.join(path));
         match fs::stat(&self.root.join(path)) {
             Ok(stat) => {
                 Ok(())
@@ -58,11 +58,12 @@ impl vfs::Filesystem for NativeFS {
 
 impl io::Streaming for NativeFS {
     fn do_write(&mut self, handle: &io::Handle, buf: &[u8]) -> IoResult<usize> {
+        trace!("Writing to {:?}", handle.get_local_fd());
         Ok(0)
     }
 
     fn do_read(&mut self, handle: &io::Handle, buf: &mut [u8]) -> IoResult<usize> {
-        println!("Reading from {:?}", handle.get_local_fd());
+        trace!("Reading from {:?}", handle.get_local_fd());
         match self.get_file(handle) {
             Ok(f) => f.read(buf),
             Err(e) => Err(e)
@@ -70,6 +71,7 @@ impl io::Streaming for NativeFS {
     }
 
     fn do_close(&mut self, handle: &io::Handle) -> IoResult<()> {
+        trace!("Closing {:?}", handle.get_local_fd());
         Ok(())
     }
 }

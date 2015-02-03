@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate bitflags;
+
 pub use sandbox::Sandbox;
 pub mod sandbox;
 pub mod executors;

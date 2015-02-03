@@ -2,7 +2,7 @@ extern crate "codius-sandbox-core" as sandbox;
 
 use sandbox::vfs;
 use sandbox::io;
-use std::io::*;
+use std::old_io::*;
 use std::cell::RefCell;
 
 struct TestFS {

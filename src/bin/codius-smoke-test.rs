@@ -16,7 +16,6 @@ impl sandbox::events::Watcher for NullWatcher {
     }
 }
 
-#[main]
 fn main() {
     let args = os::args();
     let mut argv = Vec::new();

@@ -192,7 +192,7 @@ impl<'a, 'b> Sandbox<'a, 'b> {
                 match e {
                     ptrace::Event::Exec => self.handle_exec(res),
                     ptrace::Event::Seccomp =>
-                        events::Event::new(res, events::State::Seccomp(ptrace::Syscall::from_pid(res.pid))),
+                        events::Event::new(res, events::State::Seccomp(ptrace::Syscall::from_pid(res.pid).ok().expect("Could not pull syscall from child"))),
                     ptrace::Event::Exit => {
                         self.release(ipc::signals::Signal::None);
                         events::Event::new(res, events::State::Exit(0))

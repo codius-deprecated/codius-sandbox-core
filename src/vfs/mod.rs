@@ -4,7 +4,7 @@ use io;
 use events;
 use self::seccomp::Syscall;
 use std::collections::HashMap;
-use std::io::{IoResult, IoErrorKind, FileStat};
+use std::old_io::{IoResult, IoErrorKind, FileStat};
 use std::rc::Rc;
 use std::cell::RefCell;
 

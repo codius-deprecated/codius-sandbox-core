@@ -80,7 +80,7 @@ impl<'fs> events::SyscallHandler for VFS<'fs> {
             Syscall::OPEN => self.do_open(call),
             Syscall::STAT => self.do_stat(call),
             _ => {
-                println!("Got unhandled syscall {:?}", call);
+                warn!("Got unhandled syscall {:?}", call);
             }
         }
     }

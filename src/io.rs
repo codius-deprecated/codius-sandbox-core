@@ -1,7 +1,7 @@
 #[allow(unstable)]
 extern crate core;
 
-use std::io::IoResult;
+use std::old_io::IoResult;
 
 pub trait Handle {
     fn get_local_fd(&self) -> i32;

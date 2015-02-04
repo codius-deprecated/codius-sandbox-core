@@ -1,8 +1,8 @@
 use vfs;
 use io;
-use std::io::{File, Read, Open, ReadWrite, IoResult, FileStat, IoError, IoErrorKind};
+use std::old_io::{File, Read, Open, ReadWrite, IoResult, FileStat, IoError, IoErrorKind};
 use std::os::unix::prelude::AsRawFd;
-use std::io::fs;
+use std::old_io::fs;
 use std::collections::HashMap;
 
 pub struct NativeFS {

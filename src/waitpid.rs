@@ -8,7 +8,7 @@ use self::ipc::signals;
 use std::os;
 use std::num::FromPrimitive;
 
-#[derive(Copy, Show)]
+#[derive(Copy, Debug)]
 pub enum WaitState {
     Stopped(signals::Signal),
     Continued,
@@ -38,7 +38,7 @@ impl WaitState {
     }
 }
 
-#[derive(Show, Copy)]
+#[derive(Debug, Copy)]
 pub struct WaitResult {
     pub pid: libc::pid_t,
     pub status: i32,

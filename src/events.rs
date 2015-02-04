@@ -8,7 +8,7 @@ use std::num::FromPrimitive;
 
 use waitpid;
 
-#[derive(Show, Copy)]
+#[derive(Debug, Copy)]
 pub enum State {
     None,
     Trap,
@@ -20,13 +20,13 @@ pub enum State {
     Seccomp(ptrace::Syscall)
 }
 
-#[derive(Show, Copy)]
+#[derive(Debug, Copy)]
 pub struct Event {
     pub state: State,
     pid: libc::pid_t,
 }
 
-#[derive(Show, Copy)]
+#[derive(Debug, Copy)]
 pub struct Syscall {
     pub symbolic: seccomp::Syscall,
     pub call: ptrace::Syscall,

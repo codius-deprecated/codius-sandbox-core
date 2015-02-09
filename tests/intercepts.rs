@@ -6,7 +6,7 @@ extern crate "posix-ipc" as ipc;
 fn intercept_exit() {
     let mut exit_status = 0;
     {
-        let mut watcher = sandbox::events::ClosureWatcher::new(Box::new(|&mut:event: &sandbox::events::Event| {
+        let mut watcher = sandbox::events::ClosureWatcher::new(Box::new(|event: &sandbox::events::Event| {
             match event.state {
                 sandbox::events::State::Exit(st) =>
                     exit_status = st,

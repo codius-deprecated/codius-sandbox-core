@@ -194,8 +194,12 @@ impl<'a, 'b> Sandbox<'a, 'b> {
                     ptrace::Event::Seccomp =>
                         events::Event::new(res, events::State::Seccomp(ptrace::Syscall::from_pid(res.pid).ok().expect("Could not pull syscall from child"))),
                     ptrace::Event::Exit => {
+                        let s = match ptrace::get_event_msg(self.pid) {
+                            Ok(v) => v as isize,
+                            Err(e) => panic!("Could not get child exit status: {}", os::last_os_error())
+                        };
                         self.release(ipc::signals::Signal::None);
-                        events::Event::new(res, events::State::Exit(0))
+                        events::Event::new(res, events::State::Exit(s & 0xff))
                     },
                     _ => panic!("Unhandled ptrace event {:?}", res)
                 },

@@ -9,6 +9,7 @@ machine:
   environment:
     PATH: ~/rust/bin/:$PATH
     LD_LIBRARY_PATH: ~/rust/lib/:$LD_LIBRARY_PATH
+    RUST_TEST_TASKS: 1
 test:
   override:
-    - RUST_TEST_TASKS=1 PATH=~/rust/bin:$PATH LD_LIBRARY_PATH=~/rust/lib:$LD_LIBRARY_PATH cargo test
+    - cargo test

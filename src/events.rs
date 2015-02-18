@@ -74,7 +74,7 @@ impl Syscall {
     pub fn read_string_arg(&self, arg_num: usize) -> String {
         let reader = ptrace::Reader::new(self.pid);
         let s = reader.read_string(self.call.args[arg_num]).ok().expect("Could not read string argument");
-        return String::from_utf8(s).ok().expect("Could not read string argument");
+        return String::from_utf8(s).ok().expect("String argument is not UTF8");
     }
 
     pub fn write_buf_arg<T: Sized>(&self, arg_num: usize, buf: &T) -> Result<(), usize> {

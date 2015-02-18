@@ -11,4 +11,4 @@ machine:
     LD_LIBRARY_PATH: ~/rust/lib/:$LD_LIBRARY_PATH
 test:
   override:
-    - PATH=~/rust/bin:$PATH LD_LIBRARY_PATH=~/rust/lib:$LD_LIBRARY_PATH cargo test
+    - RUST_TEST_TASKS=1 PATH=~/rust/bin:$PATH LD_LIBRARY_PATH=~/rust/lib:$LD_LIBRARY_PATH cargo test
